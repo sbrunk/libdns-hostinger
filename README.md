@@ -1,6 +1,6 @@
 # Hostinger for [`libdns`](https://github.com/libdns/libdns)
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/libdns/hostinger.svg)](https://pkg.go.dev/github.com/libdns/hostinger)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sbrunk/libdns-hostinger.svg)](https://pkg.go.dev/github.com/sbrunk/libdns-hostinger)
 
 This package implements the [libdns interfaces](https://github.com/libdns/libdns) for [Hostinger](https://www.hostinger.com/), allowing you to manage DNS records.
 
@@ -27,7 +27,7 @@ import (
     "net/netip"
     "time"
 
-    "github.com/libdns/hostinger"
+    "github.com/sbrunk/libdns-hostinger"
     "github.com/libdns/libdns"
 )
 

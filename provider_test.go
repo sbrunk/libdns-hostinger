@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libdns/hostinger"
+	"github.com/sbrunk/libdns-hostinger"
 	"github.com/libdns/libdns"
 )
 
