@@ -14,6 +14,17 @@ import (
 	"github.com/libdns/libdns"
 )
 
+// unquoteTXT strips surrounding double quotes from TXT record content.
+// The Hostinger API returns TXT values wrapped in quotes, but libdns
+// expects unquoted values.
+func unquoteTXT(recordType, content string) string {
+	if recordType == "TXT" {
+		content = strings.TrimPrefix(content, "\"")
+		content = strings.TrimSuffix(content, "\"")
+	}
+	return content
+}
+
 // Provider facilitates DNS record manipulation with Hostinger.
 type Provider struct {
 	// APIToken is the Hostinger API token used for authentication.
@@ -51,7 +62,7 @@ func (p *Provider) GetRecords(ctx context.Context, zone string) ([]libdns.Record
 				Name: zr.Name,
 				Type: zr.Type,
 				TTL:  ttl,
-				Data: rc.Content,
+				Data: unquoteTXT(zr.Type, rc.Content),
 			}
 			parsed, _ := rr.Parse()
 			records = append(records, parsed)
@@ -136,6 +147,9 @@ func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []lib
 	type rrsetKey struct{ Name, Type string }
 	currentByKey := make(map[rrsetKey]dnsZoneRecord)
 	for _, zr := range currentZone {
+		for i, rc := range zr.Records {
+			zr.Records[i].Content = unquoteTXT(zr.Type, rc.Content)
+		}
 		key := rrsetKey{zr.Name, zr.Type}
 		currentByKey[key] = zr
 	}

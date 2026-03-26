@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbrunk/libdns-hostinger"
 	"github.com/libdns/libdns"
+	hostinger "github.com/sbrunk/libdns-hostinger"
 )
 
 func newProvider(t *testing.T) (*hostinger.Provider, string) {
@@ -117,5 +117,68 @@ func TestSetRecords(t *testing.T) {
 	_, err = provider.DeleteRecords(ctx, zone, []libdns.Record{updated})
 	if err != nil {
 		t.Fatalf("DeleteRecords (cleanup): %v", err)
+	}
+}
+
+// TestAppendAndDeleteTXTRecords tests TXT record creation and deletion,
+// which exercises the same code path as ACME DNS-01 challenge cleanup.
+func TestAppendAndDeleteTXTRecords(t *testing.T) {
+	provider, zone := newProvider(t)
+	ctx := context.Background()
+
+	testRecord := libdns.TXT{
+		Name: "_libdns-test-txt",
+		TTL:  300 * time.Second,
+		Text: "test-challenge-token",
+	}
+
+	// Append
+	appended, err := provider.AppendRecords(ctx, zone, []libdns.Record{testRecord})
+	if err != nil {
+		t.Fatalf("AppendRecords: %v", err)
+	}
+	if len(appended) != 1 {
+		t.Fatalf("expected 1 appended record, got %d", len(appended))
+	}
+
+	// Verify it exists and content is unquoted
+	records, err := provider.GetRecords(ctx, zone)
+	if err != nil {
+		t.Fatalf("GetRecords after append: %v", err)
+	}
+	found := false
+	for _, rec := range records {
+		rr := rec.RR()
+		if rr.Name == "_libdns-test-txt" && rr.Type == "TXT" {
+			if rr.Data != "test-challenge-token" {
+				t.Errorf("TXT content = %q, want %q", rr.Data, "test-challenge-token")
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("appended TXT record not found in zone")
+	}
+
+	// Delete using the same record (simulates certmagic CleanUp)
+	deleted, err := provider.DeleteRecords(ctx, zone, []libdns.Record{testRecord})
+	if err != nil {
+		t.Fatalf("DeleteRecords: %v", err)
+	}
+	if len(deleted) != 1 {
+		t.Fatalf("expected 1 deleted record, got %d", len(deleted))
+	}
+
+	// Verify it's gone
+	records, err = provider.GetRecords(ctx, zone)
+	if err != nil {
+		t.Fatalf("GetRecords after delete: %v", err)
+	}
+	for _, rec := range records {
+		rr := rec.RR()
+		if rr.Name == "_libdns-test-txt" && rr.Type == "TXT" {
+			t.Fatal("TXT record still exists after deletion")
+		}
 	}
 }
